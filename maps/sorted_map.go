@@ -1,25 +1,19 @@
 package maps
 
 import (
+	"slices"
 	"sort"
 
-	"slices"
+	"dsgo/utils"
 )
 
-type Ordered interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
-		~float32 | ~float64 |
-		~string
-}
-
-type SortedMap[K Ordered, V any] struct {
+type SortedMap[K utils.Ordered, V any] struct {
 	keys   []K
 	values []V
 	index  map[K]int
 }
 
-func NewSortedMap[K Ordered, V any]() *SortedMap[K, V] {
+func NewSortedMap[K utils.Ordered, V any]() *SortedMap[K, V] {
 	return &SortedMap[K, V]{
 		keys:   make([]K, 0),
 		values: make([]V, 0),

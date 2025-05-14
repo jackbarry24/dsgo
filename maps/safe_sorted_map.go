@@ -1,15 +1,16 @@
 package maps
 
 import (
+	"dsgo/utils"
 	"sync"
 )
 
-type SafeSortedMap[K Ordered, V any] struct {
+type SafeSortedMap[K utils.Ordered, V any] struct {
 	mu    sync.RWMutex
 	inner *SortedMap[K, V]
 }
 
-func NewSafeSortedMap[K Ordered, V any]() *SafeSortedMap[K, V] {
+func NewSafeSortedMap[K utils.Ordered, V any]() *SafeSortedMap[K, V] {
 	return &SafeSortedMap[K, V]{
 		inner: NewSortedMap[K, V](),
 	}
