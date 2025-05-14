@@ -5,14 +5,14 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	s := New[int]()
+	s := NewSet[int]()
 	if s.Size() != 0 {
 		t.Errorf("New set should be empty, got size %d", s.Size())
 	}
 }
 
 func TestAddAndContains(t *testing.T) {
-	s := New[int]()
+	s := NewSet[int]()
 	s.Add(1)
 	s.Add(2)
 	s.Add(1) // Adding duplicate
@@ -29,7 +29,7 @@ func TestAddAndContains(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	s := New[string]()
+	s := NewSet[string]()
 	s.Add("a")
 	s.Add("b")
 	s.Remove("a")
@@ -46,8 +46,8 @@ func TestRemove(t *testing.T) {
 }
 
 func TestUnion(t *testing.T) {
-	s1 := New[int]()
-	s2 := New[int]()
+	s1 := NewSet[int]()
+	s2 := NewSet[int]()
 	s1.Add(1)
 	s1.Add(2)
 	s2.Add(2)
@@ -63,8 +63,8 @@ func TestUnion(t *testing.T) {
 }
 
 func TestIntersection(t *testing.T) {
-	s1 := New[int]()
-	s2 := New[int]()
+	s1 := NewSet[int]()
+	s2 := NewSet[int]()
 	s1.Add(1)
 	s1.Add(2)
 	s2.Add(2)
@@ -80,8 +80,8 @@ func TestIntersection(t *testing.T) {
 }
 
 func TestDifference(t *testing.T) {
-	s1 := New[int]()
-	s2 := New[int]()
+	s1 := NewSet[int]()
+	s2 := NewSet[int]()
 	s1.Add(1)
 	s1.Add(2)
 	s2.Add(2)
@@ -97,7 +97,7 @@ func TestDifference(t *testing.T) {
 }
 
 func TestClear(t *testing.T) {
-	s := New[int]()
+	s := NewSet[int]()
 	s.Add(1)
 	s.Add(2)
 	s.Clear()
@@ -111,7 +111,7 @@ func TestClear(t *testing.T) {
 }
 
 func TestItems(t *testing.T) {
-	s := New[int]()
+	s := NewSet[int]()
 	s.Add(1)
 	s.Add(2)
 	s.Add(3)

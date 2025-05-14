@@ -4,7 +4,7 @@ type Set[T comparable] struct {
 	items map[T]struct{}
 }
 
-func New[T comparable]() *Set[T] {
+func NewSet[T comparable]() *Set[T] {
 	return &Set[T]{
 		items: make(map[T]struct{}),
 	}
@@ -36,7 +36,7 @@ func (s *Set[T]) Clear() {
 }
 
 func (s *Set[T]) Union(other *Set[T]) *Set[T] {
-	result := New[T]()
+	result := NewSet[T]()
 	for item := range s.items {
 		result.Add(item)
 	}
@@ -47,7 +47,7 @@ func (s *Set[T]) Union(other *Set[T]) *Set[T] {
 }
 
 func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
-	result := New[T]()
+	result := NewSet[T]()
 	for item := range s.items {
 		if other.Contains(item) {
 			result.Add(item)
@@ -57,7 +57,7 @@ func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
 }
 
 func (s *Set[T]) Difference(other *Set[T]) *Set[T] {
-	result := New[T]()
+	result := NewSet[T]()
 	for item := range s.items {
 		if !other.Contains(item) {
 			result.Add(item)

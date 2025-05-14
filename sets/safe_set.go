@@ -7,7 +7,7 @@ type SafeSet[T comparable] struct {
 	items map[T]struct{}
 }
 
-func NewSafe[T comparable]() *SafeSet[T] {
+func NewSafeSet[T comparable]() *SafeSet[T] {
 	return &SafeSet[T]{
 		items: make(map[T]struct{}),
 	}
@@ -54,7 +54,7 @@ func (s *SafeSet[T]) Union(other *SafeSet[T]) *SafeSet[T] {
 	defer s.mu.RUnlock()
 	defer other.mu.RUnlock()
 
-	result := NewSafe[T]()
+	result := NewSafeSet[T]()
 	for item := range s.items {
 		result.Add(item)
 	}
@@ -70,7 +70,7 @@ func (s *SafeSet[T]) Intersection(other *SafeSet[T]) *SafeSet[T] {
 	defer s.mu.RUnlock()
 	defer other.mu.RUnlock()
 
-	result := NewSafe[T]()
+	result := NewSafeSet[T]()
 	for item := range s.items {
 		if _, exists := other.items[item]; exists {
 			result.Add(item)
@@ -85,7 +85,7 @@ func (s *SafeSet[T]) Difference(other *SafeSet[T]) *SafeSet[T] {
 	defer s.mu.RUnlock()
 	defer other.mu.RUnlock()
 
-	result := NewSafe[T]()
+	result := NewSafeSet[T]()
 	for item := range s.items {
 		if _, exists := other.items[item]; !exists {
 			result.Add(item)

@@ -13,14 +13,14 @@ func BenchmarkSet(b *testing.B) {
 		{
 			Name: "Add",
 			Function: func(item int) {
-				s := sets.New[int]()
+				s := sets.NewSet[int]()
 				s.Add(item)
 			},
 		},
 		{
 			Name: "Contains",
 			Function: func(item int) {
-				s := sets.New[int]()
+				s := sets.NewSet[int]()
 				s.Add(item)
 				s.Contains(item)
 			},
@@ -28,7 +28,7 @@ func BenchmarkSet(b *testing.B) {
 		{
 			Name: "Remove",
 			Function: func(item int) {
-				s := sets.New[int]()
+				s := sets.NewSet[int]()
 				s.Add(item)
 				s.Remove(item)
 			},
@@ -36,7 +36,7 @@ func BenchmarkSet(b *testing.B) {
 	}
 
 	RunBenchmarkSuite(b, config, func() interface{} {
-		return sets.New[int]()
+		return sets.NewSet[int]()
 	}, operations)
 }
 
@@ -47,14 +47,14 @@ func BenchmarkSafeSet(b *testing.B) {
 		{
 			Name: "Add",
 			Function: func(item int) {
-				s := sets.NewSafe[int]()
+				s := sets.NewSafeSet[int]()
 				s.Add(item)
 			},
 		},
 		{
 			Name: "Contains",
 			Function: func(item int) {
-				s := sets.NewSafe[int]()
+				s := sets.NewSafeSet[int]()
 				s.Add(item)
 				s.Contains(item)
 			},
@@ -62,7 +62,7 @@ func BenchmarkSafeSet(b *testing.B) {
 		{
 			Name: "Remove",
 			Function: func(item int) {
-				s := sets.NewSafe[int]()
+				s := sets.NewSafeSet[int]()
 				s.Add(item)
 				s.Remove(item)
 			},
@@ -70,7 +70,7 @@ func BenchmarkSafeSet(b *testing.B) {
 	}
 
 	RunBenchmarkSuite(b, config, func() any {
-		return sets.NewSafe[int]()
+		return sets.NewSafeSet[int]()
 	}, operations)
 }
 
@@ -81,14 +81,14 @@ func BenchmarkSetConcurrent(b *testing.B) {
 		{
 			Name: "Add",
 			Function: func(item int) {
-				s := sets.New[int]()
+				s := sets.NewSet[int]()
 				s.Add(item)
 			},
 		},
 		{
 			Name: "Contains",
 			Function: func(item int) {
-				s := sets.New[int]()
+				s := sets.NewSet[int]()
 				s.Add(item)
 				s.Contains(item)
 			},
@@ -96,7 +96,7 @@ func BenchmarkSetConcurrent(b *testing.B) {
 		{
 			Name: "Remove",
 			Function: func(item int) {
-				s := sets.New[int]()
+				s := sets.NewSet[int]()
 				s.Add(item)
 				s.Remove(item)
 			},
@@ -106,7 +106,7 @@ func BenchmarkSetConcurrent(b *testing.B) {
 	for _, op := range operations {
 		b.Run(op.Name, func(b *testing.B) {
 			RunConcurrentBenchmark(b, config, func() any {
-				return sets.New[int]()
+				return sets.NewSet[int]()
 			}, op)
 		})
 	}
@@ -119,14 +119,14 @@ func BenchmarkSafeSetConcurrent(b *testing.B) {
 		{
 			Name: "Add",
 			Function: func(item int) {
-				s := sets.NewSafe[int]()
+				s := sets.NewSafeSet[int]()
 				s.Add(item)
 			},
 		},
 		{
 			Name: "Contains",
 			Function: func(item int) {
-				s := sets.NewSafe[int]()
+				s := sets.NewSafeSet[int]()
 				s.Add(item)
 				s.Contains(item)
 			},
@@ -134,7 +134,7 @@ func BenchmarkSafeSetConcurrent(b *testing.B) {
 		{
 			Name: "Remove",
 			Function: func(item int) {
-				s := sets.NewSafe[int]()
+				s := sets.NewSafeSet[int]()
 				s.Add(item)
 				s.Remove(item)
 			},
@@ -144,7 +144,7 @@ func BenchmarkSafeSetConcurrent(b *testing.B) {
 	for _, op := range operations {
 		b.Run(op.Name, func(b *testing.B) {
 			RunConcurrentBenchmark(b, config, func() any {
-				return sets.NewSafe[int]()
+				return sets.NewSafeSet[int]()
 			}, op)
 		})
 	}

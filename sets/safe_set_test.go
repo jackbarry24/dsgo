@@ -6,7 +6,7 @@ import (
 )
 
 func TestSafeSetBasicOperations(t *testing.T) {
-	s := NewSafe[int]()
+	s := NewSafeSet[int]()
 
 	// Test empty set
 	if !s.IsEmpty() {
@@ -50,8 +50,8 @@ func TestSafeSetBasicOperations(t *testing.T) {
 }
 
 func TestSafeSetOperations(t *testing.T) {
-	s1 := NewSafe[int]()
-	s2 := NewSafe[int]()
+	s1 := NewSafeSet[int]()
+	s2 := NewSafeSet[int]()
 
 	s1.Add(1)
 	s1.Add(2)
@@ -90,7 +90,7 @@ func TestSafeSetOperations(t *testing.T) {
 }
 
 func TestSafeSetConcurrentOperations(t *testing.T) {
-	s := NewSafe[int]()
+	s := NewSafeSet[int]()
 	var wg sync.WaitGroup
 
 	// Test concurrent Add operations
@@ -133,7 +133,7 @@ func TestSafeSetConcurrentOperations(t *testing.T) {
 }
 
 func TestSafeSetConcurrentModifications(t *testing.T) {
-	s := NewSafe[int]()
+	s := NewSafeSet[int]()
 	var wg sync.WaitGroup
 
 	// Test concurrent Add and Remove operations
