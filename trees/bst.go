@@ -1,7 +1,11 @@
 package trees
 
-import "dsgo/utils"
+import (
+	"dsgo/utils"
+	"sync"
+)
 
+// BST is a basic binary search tree implementation that is not safe for concurrent use.
 type BST[K utils.Ordered, V any] struct {
 	root *Node[K, V]
 }
@@ -110,4 +114,34 @@ func findMin[K utils.Ordered, V any](node *Node[K, V]) *Node[K, V] {
 		current = current.left
 	}
 	return current
+}
+
+// SafeBST is a thread-safe wrapper around BST.
+type SafeBST[K utils.Ordered, V any] struct {
+	mu    sync.RWMutex
+	inner *BST[K, V]
+}
+
+func NewSafeBST[K utils.Ordered, V any]() *SafeBST[K, V] {
+	return &SafeBST[K, V]{
+		inner: NewBST[K, V](),
+	}
+}
+
+func (s *SafeBST[K, V]) Insert(key K, value V) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.inner.Insert(key, value)
+}
+
+func (s *SafeBST[K, V]) Search(key K) (V, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.inner.Search(key)
+}
+
+func (s *SafeBST[K, V]) Delete(key K) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.inner.Delete(key)
 }
