@@ -3,7 +3,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/jackbarry24/dsgo)](https://goreportcard.com/report/github.com/jackbarry24/dsgo)
 [![GoDoc](https://godoc.org/github.com/jackbarry24/dsgo?status.svg)](https://godoc.org/github.com/jackbarry24/dsgo)
 [![CI Status](https://github.com/jackbarry24/dsgo/workflows/DSGO%20Tests/badge.svg)](https://github.com/jackbarry24/dsgo/actions)
-<!-- [![codecov](https://codecov.io/gh/yourusername/dsgo/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/dsgo) -->
 
 A comprehensive collection of data structures implemented in Go, featuring high test coverage and performance optimizations.
 
