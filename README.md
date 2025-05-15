@@ -2,9 +2,9 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/jackbarry24/dsgo)](https://goreportcard.com/report/github.com/jackbarry24/dsgo)
 [![GoDoc](https://godoc.org/github.com/jackbarry24/dsgo?status.svg)](https://godoc.org/github.com/jackbarry24/dsgo)
-[![CI Status](https://github.com/jackbarry24/dsgo/workflows/DSGO%20Tests/badge.svg)](https://github.com/jackbarry24/dsgo/actions)
+[![CI Status](https://github.com/jackbarry24/dsgo/actions/workflows/ci.yml/badge.svg)](https://github.com/jackbarry24/dsgo/actions/workflows/ci.yml)
 
-A comprehensive collection of data structures implemented in Go, featuring high test coverage and performance optimizations.
+A comprehensive collection of data structures implemented in Go for Go.
 
 ## Data Structures
 
@@ -41,11 +41,3 @@ A comprehensive collection of data structures implemented in Go, featuring high 
 
 ### Cache
 - `LRUCache`: Least Recently Used (LRU) cache implementation
-
-## 🚀 Features
-
-- High test coverage (87.1% overall)
-- Thread-safe implementations where appropriate
-- Comprehensive benchmark suite
-- Generic implementations using Go's type system
-- Well-documented code with examples
