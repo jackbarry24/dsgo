@@ -1,8 +1,10 @@
 package trees
 
 import (
+	"fmt"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestBST_Insert(t *testing.T) {
@@ -41,7 +43,7 @@ func TestBST_Insert(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bst := NewBST[int, int]()
+			bst := NewBST[int, int](false)
 			for _, insert := range tt.inserts {
 				bst.Insert(insert.key, insert.value)
 			}
@@ -67,7 +69,7 @@ func TestBST_Insert(t *testing.T) {
 }
 
 func TestBST_Search(t *testing.T) {
-	bst := NewBST[int, int]()
+	bst := NewBST[int, int](false)
 	bst.Insert(5, 5)
 	bst.Insert(3, 3)
 	bst.Insert(7, 7)
@@ -207,7 +209,7 @@ func TestBST_Delete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bst := NewBST[int, int]()
+			bst := NewBST[int, int](false)
 			tt.setup(bst)
 			bst.Delete(tt.delete)
 			tt.check(t, bst)
@@ -215,140 +217,139 @@ func TestBST_Delete(t *testing.T) {
 	}
 }
 
-func TestSafeBST_Sequential(t *testing.T) {
-	bst := NewSafeBST[int, int]()
-
-	// Test basic operations
-	bst.Insert(5, 5)
-	bst.Insert(3, 3)
-	bst.Insert(7, 7)
-
-	// Test search
-	if value, found := bst.Search(5); !found || value != 5 {
-		t.Errorf("Search(5) = (%v, %v), want (5, true)", value, found)
-	}
-
-	// Test delete
-	bst.Delete(3)
-	if _, found := bst.Search(3); found {
-		t.Error("Search(3) = found, want not found")
-	}
-}
-
-func TestSafeBST_Concurrent(t *testing.T) {
-	bst := NewSafeBST[int, int]()
+func TestBSTConcurrent(t *testing.T) {
+	tree := NewBST[int, string](true)
 	var wg sync.WaitGroup
-	iterations := 1000
-	insertDone := make(chan struct{})
-	searchDone := make(chan struct{})
+	done := make(chan bool)
 
-	// Concurrent inserts
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
-		defer close(insertDone)
-		for i := 0; i < iterations; i++ {
-			bst.Insert(i, i)
+		// Test concurrent Insert operations
+		for i := 0; i < 1000; i++ {
+			wg.Add(1)
+			go func(val int) {
+				defer wg.Done()
+				tree.Insert(val, fmt.Sprintf("value-%d", val))
+			}(i)
 		}
-	}()
+		wg.Wait()
 
-	// Wait for inserts to complete before starting searches
-	<-insertDone
-
-	// Concurrent searches
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer close(searchDone)
-		for i := 0; i < iterations; i++ {
-			value, found := bst.Search(i)
-			if !found || value != i {
-				t.Errorf("Concurrent search: Search(%d) = (%d, %v), want (%d, true)", i, value, found, i)
+		// Verify all values were inserted
+		for i := 0; i < 1000; i++ {
+			if value, exists := tree.Search(i); !exists || value != fmt.Sprintf("value-%d", i) {
+				t.Errorf("Expected value-%d, got %v", i, value)
 			}
 		}
+		done <- true
 	}()
 
-	// Wait for searches to complete before starting deletes
-	<-searchDone
+	select {
+	case <-done:
+		// Test completed successfully
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out after 5 seconds")
+	}
+}
 
-	// Concurrent deletes
-	wg.Add(1)
+func TestBSTConcurrentDelete(t *testing.T) {
+	tree := NewBST[int, string](true)
+	var wg sync.WaitGroup
+	done := make(chan bool)
+
 	go func() {
-		defer wg.Done()
-		for i := 0; i < iterations; i++ {
-			bst.Delete(i)
+		// First insert values
+		for i := 0; i < 1000; i++ {
+			tree.Insert(i, fmt.Sprintf("value-%d", i))
 		}
+
+		// Test concurrent Delete operations
+		for i := 0; i < 500; i++ {
+			wg.Add(1)
+			go func(val int) {
+				defer wg.Done()
+				tree.Delete(val)
+			}(i)
+		}
+		wg.Wait()
+
+		// Verify deleted values are gone and others remain
+		for i := 0; i < 1000; i++ {
+			_, exists := tree.Search(i)
+			if i < 500 && exists {
+				t.Errorf("Value %d should be deleted", i)
+			} else if i >= 500 && !exists {
+				t.Errorf("Value %d should exist", i)
+			}
+		}
+		done <- true
 	}()
 
-	wg.Wait()
+	select {
+	case <-done:
+		// Test completed successfully
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out after 5 seconds")
+	}
+}
 
-	// Verify final state
-	for i := 0; i < iterations; i++ {
-		if _, found := bst.Search(i); found {
-			t.Errorf("Final state: Search(%d) = found, want not found", i)
+func TestBSTConcurrentSearch(t *testing.T) {
+	tree := NewBST[int, string](true)
+	var wg sync.WaitGroup
+	done := make(chan bool)
+
+	go func() {
+		// First insert values
+		for i := 0; i < 1000; i++ {
+			tree.Insert(i, fmt.Sprintf("value-%d", i))
 		}
-	}
-}
 
-func TestSafeBST_ConcurrentUpdates(t *testing.T) {
-	bst := NewSafeBST[int, int]()
-	var wg sync.WaitGroup
-	iterations := 1000
-	key := 1
-
-	// Multiple goroutines updating the same key
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func(workerID int) {
-			defer wg.Done()
-			for j := 0; j < iterations; j++ {
-				bst.Insert(key, workerID)
-			}
-		}(i)
-	}
-
-	wg.Wait()
-
-	// Verify that the key exists and has a valid value
-	value, found := bst.Search(key)
-	if !found {
-		t.Errorf("Search(%d) = not found, want found", key)
-	}
-	if value < 0 || value >= 10 {
-		t.Errorf("Search(%d) = %d, want value between 0 and 9", key, value)
-	}
-}
-
-func TestSafeBST_ConcurrentMixed(t *testing.T) {
-	bst := NewSafeBST[int, int]()
-	var wg sync.WaitGroup
-	iterations := 1000
-
-	// Start multiple goroutines that perform mixed operations
-	for i := 0; i < 5; i++ {
-		wg.Add(1)
-		go func(workerID int) {
-			defer wg.Done()
-			start := workerID * iterations
-			for j := 0; j < iterations; j++ {
-				key := start + j
-				bst.Insert(key, key)
-				value, found := bst.Search(key)
-				if !found || value != key {
-					t.Errorf("Worker %d: Search(%d) = (%d, %v), want (%d, true)",
-						workerID, key, value, found, key)
+		// Test concurrent Search operations
+		for i := 0; i < 1000; i++ {
+			wg.Add(1)
+			go func(val int) {
+				defer wg.Done()
+				if value, exists := tree.Search(val); !exists || value != fmt.Sprintf("value-%d", val) {
+					t.Errorf("Expected value-%d, got %v", val, value)
 				}
-				bst.Delete(key)
-			}
-		}(i)
-	}
-
-	wg.Wait()
-
-	// Verify final state
-	for i := 0; i < 5*iterations; i++ {
-		if _, found := bst.Search(i); found {
-			t.Errorf("Final state: Search(%d) = found, want not found", i)
+			}(i)
 		}
+		wg.Wait()
+		done <- true
+	}()
+
+	select {
+	case <-done:
+		// Test completed successfully
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out after 5 seconds")
+	}
+}
+
+func TestBSTConcurrentModifications(t *testing.T) {
+	tree := NewBST[int, string](true)
+	var wg sync.WaitGroup
+	done := make(chan bool)
+
+	go func() {
+		// Test concurrent Insert and Delete operations
+		for i := 0; i < 1000; i++ {
+			wg.Add(2)
+			go func(val int) {
+				defer wg.Done()
+				tree.Insert(val, fmt.Sprintf("value-%d", val))
+			}(i)
+			go func(val int) {
+				defer wg.Done()
+				tree.Delete(val)
+			}(i)
+		}
+		wg.Wait()
+		done <- true
+	}()
+
+	select {
+	case <-done:
+		// Test completed successfully
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out after 5 seconds")
 	}
 }

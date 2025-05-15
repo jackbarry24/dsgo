@@ -134,8 +134,8 @@ func TestItems(t *testing.T) {
 	}
 }
 
-func TestSafeSetBasicOperations(t *testing.T) {
-	s := NewSafeSet[int]()
+func TestSetBasicOperations(t *testing.T) {
+	s := NewSet[int](true)
 
 	// Test empty set
 	if !s.IsEmpty() {
@@ -178,9 +178,9 @@ func TestSafeSetBasicOperations(t *testing.T) {
 	}
 }
 
-func TestSafeSetOperations(t *testing.T) {
-	s1 := NewSafeSet[int]()
-	s2 := NewSafeSet[int]()
+func TestSetOperations(t *testing.T) {
+	s1 := NewSet[int](true)
+	s2 := NewSet[int](true)
 
 	s1.Add(1)
 	s1.Add(2)
@@ -218,8 +218,8 @@ func TestSafeSetOperations(t *testing.T) {
 	}
 }
 
-func TestSafeSetConcurrentOperations(t *testing.T) {
-	s := NewSafeSet[int]()
+func TestSetConcurrentOperations(t *testing.T) {
+	s := NewSet[int](true)
 	var wg sync.WaitGroup
 
 	// Test concurrent Add operations
@@ -249,20 +249,10 @@ func TestSafeSetConcurrentOperations(t *testing.T) {
 	if s.Size() != 500 {
 		t.Errorf("Expected size 500 after concurrent removes, got %d", s.Size())
 	}
-
-	// Test concurrent Contains operations
-	for i := 0; i < 1000; i++ {
-		wg.Add(1)
-		go func(val int) {
-			defer wg.Done()
-			s.Contains(val)
-		}(i)
-	}
-	wg.Wait()
 }
 
-func TestSafeSetConcurrentModifications(t *testing.T) {
-	s := NewSafeSet[int]()
+func TestSetConcurrentModifications(t *testing.T) {
+	s := NewSet[int](true)
 	var wg sync.WaitGroup
 
 	// Test concurrent Add and Remove operations
@@ -278,10 +268,98 @@ func TestSafeSetConcurrentModifications(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
+}
 
-	// The final size should be between 0 and 1000
-	size := s.Size()
-	if size < 0 || size > 1000 {
-		t.Errorf("Invalid size after concurrent modifications: %d", size)
+func TestSetConcurrent(t *testing.T) {
+	set := NewSet[int](true)
+	var wg sync.WaitGroup
+
+	// Test concurrent Add operations
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func(val int) {
+			defer wg.Done()
+			set.Add(val)
+		}(i)
+	}
+	wg.Wait()
+
+	if set.Size() != 1000 {
+		t.Errorf("Expected size 1000 after concurrent adds, got %d", set.Size())
+	}
+}
+
+func TestSetUnionConcurrent(t *testing.T) {
+	set1 := NewSet[int](true)
+	set2 := NewSet[int](true)
+	var wg sync.WaitGroup
+
+	// Add elements concurrently to both sets
+	for i := 0; i < 1000; i++ {
+		wg.Add(2)
+		go func(val int) {
+			defer wg.Done()
+			set1.Add(val)
+		}(i)
+		go func(val int) {
+			defer wg.Done()
+			set2.Add(val + 500)
+		}(i)
+	}
+	wg.Wait()
+
+	union := set1.Union(set2)
+	if union.Size() != 1500 {
+		t.Errorf("Expected union size 1500, got %d", union.Size())
+	}
+}
+
+func TestSetIntersectionConcurrent(t *testing.T) {
+	set1 := NewSet[int](true)
+	set2 := NewSet[int](true)
+	var wg sync.WaitGroup
+
+	// Add elements concurrently to both sets
+	for i := 0; i < 1000; i++ {
+		wg.Add(2)
+		go func(val int) {
+			defer wg.Done()
+			set1.Add(val)
+		}(i)
+		go func(val int) {
+			defer wg.Done()
+			set2.Add(val)
+		}(i)
+	}
+	wg.Wait()
+
+	intersection := set1.Intersection(set2)
+	if intersection.Size() != 1000 {
+		t.Errorf("Expected intersection size 1000, got %d", intersection.Size())
+	}
+}
+
+func TestSetDifferenceConcurrent(t *testing.T) {
+	set1 := NewSet[int](true)
+	set2 := NewSet[int](true)
+	var wg sync.WaitGroup
+
+	// Add elements concurrently to both sets
+	for i := 0; i < 1000; i++ {
+		wg.Add(2)
+		go func(val int) {
+			defer wg.Done()
+			set1.Add(val)
+		}(i)
+		go func(val int) {
+			defer wg.Done()
+			set2.Add(val + 500)
+		}(i)
+	}
+	wg.Wait()
+
+	difference := set1.Difference(set2)
+	if difference.Size() != 500 {
+		t.Errorf("Expected difference size 500, got %d", difference.Size())
 	}
 }

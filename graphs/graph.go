@@ -3,58 +3,62 @@ package graphs
 import "sync"
 
 type Graph[K comparable, V any] struct {
-	nodes map[K]V
-	edges map[K]map[K]struct{}
+	threadSafe bool
+	mu         sync.RWMutex
+	nodes      map[K]V
+	edges      map[K]map[K]struct{}
 }
 
-type SafeGraph[K comparable, V any] struct {
-	mu    sync.RWMutex
-	inner *Graph[K, V]
-}
-
-func NewGraph[K comparable, V any]() *Graph[K, V] {
+// NewGraph creates a new graph. If threadSafe is true, the graph will be safe for concurrent access.
+func NewGraph[K comparable, V any](threadSafe ...bool) *Graph[K, V] {
+	isThreadSafe := true
+	if len(threadSafe) > 0 {
+		isThreadSafe = threadSafe[0]
+	}
 	return &Graph[K, V]{
-		nodes: make(map[K]V),
-		edges: make(map[K]map[K]struct{}),
+		threadSafe: isThreadSafe,
+		nodes:      make(map[K]V),
+		edges:      make(map[K]map[K]struct{}),
 	}
 }
 
-func NewSafeGraph[K comparable, V any]() *SafeGraph[K, V] {
-	return &SafeGraph[K, V]{
-		mu:    sync.RWMutex{},
-		inner: NewGraph[K, V](),
-	}
-}
-
+// AddNode adds a node to the graph with the given key and value.
 func (g *Graph[K, V]) AddNode(key K, value V) {
+	if g.threadSafe {
+		g.mu.Lock()
+		defer g.mu.Unlock()
+	}
 	g.nodes[key] = value
 }
 
+// AddEdge adds a directed edge from 'from' to 'to'.
 func (g *Graph[K, V]) AddEdge(from, to K) {
+	if g.threadSafe {
+		g.mu.Lock()
+		defer g.mu.Unlock()
+	}
 	if _, exists := g.edges[from]; !exists {
 		g.edges[from] = make(map[K]struct{})
 	}
 	g.edges[from][to] = struct{}{}
 }
 
-func (g *SafeGraph[K, V]) AddNode(key K, value V) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	g.inner.AddNode(key, value)
-}
-
-func (g *SafeGraph[K, V]) AddEdge(from, to K) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	g.inner.AddEdge(from, to)
-}
-
+// HasNode checks if a node with the given key exists.
 func (g *Graph[K, V]) HasNode(key K) bool {
+	if g.threadSafe {
+		g.mu.RLock()
+		defer g.mu.RUnlock()
+	}
 	_, exists := g.nodes[key]
 	return exists
 }
 
+// HasEdge checks if an edge exists from 'from' to 'to'.
 func (g *Graph[K, V]) HasEdge(from, to K) bool {
+	if g.threadSafe {
+		g.mu.RLock()
+		defer g.mu.RUnlock()
+	}
 	if neighbors, exists := g.edges[from]; exists {
 		_, hasEdge := neighbors[to]
 		return hasEdge
@@ -62,7 +66,12 @@ func (g *Graph[K, V]) HasEdge(from, to K) bool {
 	return false
 }
 
+// RemoveNode removes a node and all its associated edges.
 func (g *Graph[K, V]) RemoveNode(key K) {
+	if g.threadSafe {
+		g.mu.Lock()
+		defer g.mu.Unlock()
+	}
 	delete(g.nodes, key)
 	delete(g.edges, key)
 	// Remove all edges pointing to this node
@@ -71,13 +80,23 @@ func (g *Graph[K, V]) RemoveNode(key K) {
 	}
 }
 
+// RemoveEdge removes the edge from 'from' to 'to'.
 func (g *Graph[K, V]) RemoveEdge(from, to K) {
+	if g.threadSafe {
+		g.mu.Lock()
+		defer g.mu.Unlock()
+	}
 	if neighbors, exists := g.edges[from]; exists {
 		delete(neighbors, to)
 	}
 }
 
+// GetNeighbors returns all neighbors of the given node.
 func (g *Graph[K, V]) GetNeighbors(key K) []K {
+	if g.threadSafe {
+		g.mu.RLock()
+		defer g.mu.RUnlock()
+	}
 	if neighbors, exists := g.edges[key]; exists {
 		result := make([]K, 0, len(neighbors))
 		for neighbor := range neighbors {
@@ -88,38 +107,12 @@ func (g *Graph[K, V]) GetNeighbors(key K) []K {
 	return nil
 }
 
-// Thread-safe versions of the above methods
-func (g *SafeGraph[K, V]) HasNode(key K) bool {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.inner.HasNode(key)
-}
-
-func (g *SafeGraph[K, V]) HasEdge(from, to K) bool {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.inner.HasEdge(from, to)
-}
-
-func (g *SafeGraph[K, V]) RemoveNode(key K) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	g.inner.RemoveNode(key)
-}
-
-func (g *SafeGraph[K, V]) RemoveEdge(from, to K) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	g.inner.RemoveEdge(from, to)
-}
-
-func (g *SafeGraph[K, V]) GetNeighbors(key K) []K {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.inner.GetNeighbors(key)
-}
-
+// GetNodes returns all node keys in the graph.
 func (g *Graph[K, V]) GetNodes() []K {
+	if g.threadSafe {
+		g.mu.RLock()
+		defer g.mu.RUnlock()
+	}
 	nodes := make([]K, 0, len(g.nodes))
 	for node := range g.nodes {
 		nodes = append(nodes, node)
@@ -127,7 +120,12 @@ func (g *Graph[K, V]) GetNodes() []K {
 	return nodes
 }
 
+// GetEdges returns all edges in the graph as pairs of [from, to] keys.
 func (g *Graph[K, V]) GetEdges() [][2]K {
+	if g.threadSafe {
+		g.mu.RLock()
+		defer g.mu.RUnlock()
+	}
 	edges := make([][2]K, 0)
 	for from, neighbors := range g.edges {
 		for to := range neighbors {
@@ -137,12 +135,22 @@ func (g *Graph[K, V]) GetEdges() [][2]K {
 	return edges
 }
 
+// GetNodeValue returns the value associated with a node key.
 func (g *Graph[K, V]) GetNodeValue(key K) (V, bool) {
+	if g.threadSafe {
+		g.mu.RLock()
+		defer g.mu.RUnlock()
+	}
 	value, exists := g.nodes[key]
 	return value, exists
 }
 
+// BFS performs a breadth-first search starting from the given node.
 func (g *Graph[K, V]) BFS(start K) []K {
+	if g.threadSafe {
+		g.mu.RLock()
+		defer g.mu.RUnlock()
+	}
 	if !g.HasNode(start) {
 		return nil
 	}
@@ -167,7 +175,12 @@ func (g *Graph[K, V]) BFS(start K) []K {
 	return result
 }
 
+// DFS performs a depth-first search starting from the given node.
 func (g *Graph[K, V]) DFS(start K) []K {
+	if g.threadSafe {
+		g.mu.RLock()
+		defer g.mu.RUnlock()
+	}
 	if !g.HasNode(start) {
 		return nil
 	}
@@ -189,35 +202,4 @@ func (g *Graph[K, V]) DFS(start K) []K {
 
 	dfs(start)
 	return result
-}
-
-// Thread-safe versions
-func (g *SafeGraph[K, V]) GetNodes() []K {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.inner.GetNodes()
-}
-
-func (g *SafeGraph[K, V]) GetEdges() [][2]K {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.inner.GetEdges()
-}
-
-func (g *SafeGraph[K, V]) GetNodeValue(key K) (V, bool) {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.inner.GetNodeValue(key)
-}
-
-func (g *SafeGraph[K, V]) BFS(start K) []K {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.inner.BFS(start)
-}
-
-func (g *SafeGraph[K, V]) DFS(start K) []K {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.inner.DFS(start)
 }

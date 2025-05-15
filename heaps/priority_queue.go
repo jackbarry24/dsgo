@@ -10,53 +10,40 @@ type PriorityQueueItem[T any] struct {
 }
 
 type PriorityQueue[T any] struct {
-	items []PriorityQueueItem[T]
-	less  func(a, b PriorityQueueItem[T]) bool
+	items      []PriorityQueueItem[T]
+	less       func(a, b PriorityQueueItem[T]) bool
+	threadSafe bool
+	mu         sync.RWMutex
 }
 
-type SafePriorityQueue[T any] struct {
-	mu    sync.RWMutex
-	inner *PriorityQueue[T]
-}
-
-func NewPriorityQueue[T any]() *PriorityQueue[T] {
+func NewPriorityQueue[T any](threadSafe ...bool) *PriorityQueue[T] {
+	isThreadSafe := true
+	if len(threadSafe) > 0 {
+		isThreadSafe = threadSafe[0]
+	}
 	return &PriorityQueue[T]{
 		items: []PriorityQueueItem[T]{},
 		less: func(a, b PriorityQueueItem[T]) bool {
 			return a.Priority < b.Priority
 		},
-	}
-}
-
-func NewMaxPriorityQueue[T any]() *PriorityQueue[T] {
-	return &PriorityQueue[T]{
-		items: []PriorityQueueItem[T]{},
-		less: func(a, b PriorityQueueItem[T]) bool {
-			return a.Priority > b.Priority
-		},
-	}
-}
-
-func NewSafePriorityQueue[T any]() *SafePriorityQueue[T] {
-	return &SafePriorityQueue[T]{
-		mu:    sync.RWMutex{},
-		inner: NewPriorityQueue[T](),
-	}
-}
-
-func NewSafeMaxPriorityQueue[T any]() *SafePriorityQueue[T] {
-	return &SafePriorityQueue[T]{
-		mu:    sync.RWMutex{},
-		inner: NewMaxPriorityQueue[T](),
+		threadSafe: isThreadSafe,
 	}
 }
 
 func (pq *PriorityQueue[T]) Enqueue(value T, priority int) {
+	if pq.threadSafe {
+		pq.mu.Lock()
+		defer pq.mu.Unlock()
+	}
 	pq.items = append(pq.items, PriorityQueueItem[T]{Value: value, Priority: priority})
 	pq.up(len(pq.items) - 1)
 }
 
 func (pq *PriorityQueue[T]) Dequeue() (T, int, bool) {
+	if pq.threadSafe {
+		pq.mu.Lock()
+		defer pq.mu.Unlock()
+	}
 	if len(pq.items) == 0 {
 		var zero T
 		return zero, 0, false
@@ -75,6 +62,10 @@ func (pq *PriorityQueue[T]) Dequeue() (T, int, bool) {
 }
 
 func (pq *PriorityQueue[T]) Peek() (T, int, bool) {
+	if pq.threadSafe {
+		pq.mu.RLock()
+		defer pq.mu.RUnlock()
+	}
 	if len(pq.items) == 0 {
 		var zero T
 		return zero, 0, false
@@ -83,10 +74,18 @@ func (pq *PriorityQueue[T]) Peek() (T, int, bool) {
 }
 
 func (pq *PriorityQueue[T]) Size() int {
+	if pq.threadSafe {
+		pq.mu.RLock()
+		defer pq.mu.RUnlock()
+	}
 	return len(pq.items)
 }
 
 func (pq *PriorityQueue[T]) IsEmpty() bool {
+	if pq.threadSafe {
+		pq.mu.RLock()
+		defer pq.mu.RUnlock()
+	}
 	return len(pq.items) == 0
 }
 
@@ -122,34 +121,4 @@ func (pq *PriorityQueue[T]) down(i int) {
 		pq.items[i], pq.items[smallest] = pq.items[smallest], pq.items[i]
 		i = smallest
 	}
-}
-
-func (pq *SafePriorityQueue[T]) Enqueue(value T, priority int) {
-	pq.mu.Lock()
-	defer pq.mu.Unlock()
-	pq.inner.Enqueue(value, priority)
-}
-
-func (pq *SafePriorityQueue[T]) Dequeue() (T, int, bool) {
-	pq.mu.Lock()
-	defer pq.mu.Unlock()
-	return pq.inner.Dequeue()
-}
-
-func (pq *SafePriorityQueue[T]) Peek() (T, int, bool) {
-	pq.mu.RLock()
-	defer pq.mu.RUnlock()
-	return pq.inner.Peek()
-}
-
-func (pq *SafePriorityQueue[T]) Size() int {
-	pq.mu.RLock()
-	defer pq.mu.RUnlock()
-	return pq.inner.Size()
-}
-
-func (pq *SafePriorityQueue[T]) IsEmpty() bool {
-	pq.mu.RLock()
-	defer pq.mu.RUnlock()
-	return pq.inner.IsEmpty()
 }

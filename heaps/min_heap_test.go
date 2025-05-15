@@ -6,7 +6,7 @@ import (
 )
 
 func TestMinHeapBasicOperations(t *testing.T) {
-	heap := NewMinHeap[int](func(a, b int) bool { return a < b })
+	heap := NewMinHeap[int](func(a, b int) bool { return a < b }, false)
 
 	// Test empty heap
 	if !heap.IsEmpty() {
@@ -66,7 +66,7 @@ func TestMinHeapWithCustomType(t *testing.T) {
 
 	heap := NewMinHeap[Person](func(a, b Person) bool {
 		return a.Age < b.Age
-	})
+	}, false)
 
 	people := []Person{
 		{Age: 30, Name: "Alice"},
@@ -88,7 +88,7 @@ func TestMinHeapWithCustomType(t *testing.T) {
 }
 
 func TestSafeMinHeapBasicOperations(t *testing.T) {
-	heap := NewSafeMinHeap[int](func(a, b int) bool { return a < b })
+	heap := NewMinHeap[int](func(a, b int) bool { return a < b }, true)
 
 	// Test empty heap
 	if !heap.IsEmpty() {
@@ -141,7 +141,7 @@ func TestSafeMinHeapBasicOperations(t *testing.T) {
 }
 
 func TestSafeMinHeapConcurrent(t *testing.T) {
-	heap := NewSafeMinHeap[int](func(a, b int) bool { return a < b })
+	heap := NewMinHeap[int](func(a, b int) bool { return a < b }, true)
 	var wg sync.WaitGroup
 	concurrentWriters := 10
 	itemsPerWriter := 100
@@ -193,7 +193,7 @@ func TestSafeMinHeapConcurrent(t *testing.T) {
 }
 
 func TestMinHeapEdgeCases(t *testing.T) {
-	heap := NewMinHeap[int](func(a, b int) bool { return a < b })
+	heap := NewMinHeap[int](func(a, b int) bool { return a < b }, false)
 
 	// Test with negative numbers
 	heap.Push(-5)
@@ -204,7 +204,7 @@ func TestMinHeapEdgeCases(t *testing.T) {
 	}
 
 	// Test with duplicate values
-	heap = NewMinHeap[int](func(a, b int) bool { return a < b })
+	heap = NewMinHeap[int](func(a, b int) bool { return a < b }, false)
 	heap.Push(5)
 	heap.Push(5)
 	heap.Push(5)
@@ -216,7 +216,7 @@ func TestMinHeapEdgeCases(t *testing.T) {
 	}
 
 	// Test with zero values
-	heap = NewMinHeap[int](func(a, b int) bool { return a < b })
+	heap = NewMinHeap[int](func(a, b int) bool { return a < b }, false)
 	heap.Push(0)
 	heap.Push(0)
 	if val, ok := heap.Pop(); !ok || val != 0 {

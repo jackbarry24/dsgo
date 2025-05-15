@@ -22,23 +22,26 @@ type RBNode[K utils.Ordered, V any] struct {
 }
 
 type RBTree[K utils.Ordered, V any] struct {
-	root *RBNode[K, V]
+	root       *RBNode[K, V]
+	threadSafe bool
+	mu         sync.RWMutex
 }
 
-type SafeRBTree[K utils.Ordered, V any] struct {
-	mu    sync.RWMutex
-	inner *RBTree[K, V]
-}
-
-func NewRBTree[K utils.Ordered, V any]() *RBTree[K, V] {
-	return &RBTree[K, V]{}
-}
-
-func NewSafeRBTree[K utils.Ordered, V any]() *SafeRBTree[K, V] {
-	return &SafeRBTree[K, V]{inner: NewRBTree[K, V]()}
+func NewRBTree[K utils.Ordered, V any](threadSafe ...bool) *RBTree[K, V] {
+	isThreadSafe := true
+	if len(threadSafe) > 0 {
+		isThreadSafe = threadSafe[0]
+	}
+	return &RBTree[K, V]{
+		threadSafe: isThreadSafe,
+	}
 }
 
 func (t *RBTree[K, V]) Insert(key K, value V) {
+	if t.threadSafe {
+		t.mu.Lock()
+		defer t.mu.Unlock()
+	}
 	node := &RBNode[K, V]{key: key, value: value, color: Red}
 	if t.root == nil {
 		node.color = Black
@@ -73,7 +76,7 @@ func (t *RBTree[K, V]) Insert(key K, value V) {
 }
 
 func (t *RBTree[K, V]) fixInsert(node *RBNode[K, V]) {
-	for node != t.root && node.parent.color == Red {
+	for node != t.root && node.parent != nil && node.parent.color == Red {
 		if node.parent == node.parent.parent.left {
 			uncle := node.parent.parent.right
 			if uncle != nil && uncle.color == Red {
@@ -86,9 +89,13 @@ func (t *RBTree[K, V]) fixInsert(node *RBNode[K, V]) {
 					node = node.parent
 					t.rotateLeft(node)
 				}
-				node.parent.color = Black
-				node.parent.parent.color = Red
-				t.rotateRight(node.parent.parent)
+				if node.parent != nil {
+					node.parent.color = Black
+					if node.parent.parent != nil {
+						node.parent.parent.color = Red
+						t.rotateRight(node.parent.parent)
+					}
+				}
 			}
 		} else {
 			uncle := node.parent.parent.left
@@ -102,9 +109,13 @@ func (t *RBTree[K, V]) fixInsert(node *RBNode[K, V]) {
 					node = node.parent
 					t.rotateRight(node)
 				}
-				node.parent.color = Black
-				node.parent.parent.color = Red
-				t.rotateLeft(node.parent.parent)
+				if node.parent != nil {
+					node.parent.color = Black
+					if node.parent.parent != nil {
+						node.parent.parent.color = Red
+						t.rotateLeft(node.parent.parent)
+					}
+				}
 			}
 		}
 	}
@@ -154,6 +165,15 @@ func (t *RBTree[K, V]) rotateRight(node *RBNode[K, V]) {
 }
 
 func (t *RBTree[K, V]) Search(key K) (*RBNode[K, V], bool) {
+	if t.threadSafe {
+		t.mu.RLock()
+		defer t.mu.RUnlock()
+	}
+	return t.searchNoLock(key)
+}
+
+// searchNoLock does not acquire any locks. For internal use only.
+func (t *RBTree[K, V]) searchNoLock(key K) (*RBNode[K, V], bool) {
 	node := t.root
 	for node != nil {
 		if key < node.key {
@@ -168,7 +188,11 @@ func (t *RBTree[K, V]) Search(key K) (*RBNode[K, V], bool) {
 }
 
 func (t *RBTree[K, V]) Delete(key K) {
-	node, found := t.Search(key)
+	if t.threadSafe {
+		t.mu.Lock()
+		defer t.mu.Unlock()
+	}
+	node, found := t.searchNoLock(key)
 	if !found {
 		return
 	}
@@ -177,18 +201,22 @@ func (t *RBTree[K, V]) Delete(key K) {
 
 func (t *RBTree[K, V]) deleteNode(node *RBNode[K, V]) {
 	var child *RBNode[K, V]
+	var childParent *RBNode[K, V]
 	originalColor := node.color
 
 	if node.left == nil {
 		child = node.right
+		childParent = node.parent
 		t.transplant(node, node.right)
 	} else if node.right == nil {
 		child = node.left
+		childParent = node.parent
 		t.transplant(node, node.left)
 	} else {
 		successor := t.minimum(node.right)
 		originalColor = successor.color
 		child = successor.right
+		childParent = successor.parent
 
 		if successor.parent == node {
 			if child != nil {
@@ -207,7 +235,7 @@ func (t *RBTree[K, V]) deleteNode(node *RBNode[K, V]) {
 	}
 
 	if originalColor == Black {
-		t.fixDelete(child)
+		t.fixDelete(child, childParent)
 	}
 }
 
@@ -224,49 +252,74 @@ func (t *RBTree[K, V]) transplant(u, v *RBNode[K, V]) {
 	}
 }
 
-func (t *RBTree[K, V]) fixDelete(node *RBNode[K, V]) {
-	for node != t.root && (node == nil || node.color == Black) {
-		if node == node.parent.left {
-			sibling := node.parent.right
-			if sibling.color == Red {
-				sibling.color = Black
-				node.parent.color = Red
-				t.rotateLeft(node.parent)
-				sibling = node.parent.right
-			}
-			if (sibling.left == nil || sibling.left.color == Black) &&
-				(sibling.right == nil || sibling.right.color == Black) {
-				sibling.color = Red
-				node = node.parent
+func (t *RBTree[K, V]) fixDelete(node, parent *RBNode[K, V]) {
+	for (node != t.root) && (node == nil || node.color == Black) {
+		var sibling *RBNode[K, V]
+		if parent == nil {
+			break
+		}
+		if node == nil {
+			if parent.left == nil || parent.left == node {
+				sibling = parent.right
 			} else {
+				sibling = parent.left
+			}
+		} else {
+			if node.parent == nil {
+				break
+			}
+			if node == node.parent.left {
+				sibling = node.parent.right
+			} else {
+				sibling = node.parent.left
+			}
+			parent = node.parent
+		}
+
+		if sibling == nil {
+			break
+		}
+
+		if sibling != nil && sibling.color == Red {
+			sibling.color = Black
+			parent.color = Red
+			if sibling == parent.right {
+				t.rotateLeft(parent)
+				sibling = parent.right
+			} else {
+				t.rotateRight(parent)
+				sibling = parent.left
+			}
+			if sibling == nil {
+				break
+			}
+		}
+
+		if (sibling.left == nil || sibling.left.color == Black) &&
+			(sibling.right == nil || sibling.right.color == Black) {
+			sibling.color = Red
+			node = parent
+			parent = node.parent
+		} else {
+			if sibling == parent.right {
 				if sibling.right == nil || sibling.right.color == Black {
 					if sibling.left != nil {
 						sibling.left.color = Black
 					}
 					sibling.color = Red
 					t.rotateRight(sibling)
-					sibling = node.parent.right
+					sibling = parent.right
+					if sibling == nil {
+						break
+					}
 				}
-				sibling.color = node.parent.color
-				node.parent.color = Black
+				sibling.color = parent.color
+				parent.color = Black
 				if sibling.right != nil {
 					sibling.right.color = Black
 				}
-				t.rotateLeft(node.parent)
+				t.rotateLeft(parent)
 				node = t.root
-			}
-		} else {
-			sibling := node.parent.left
-			if sibling.color == Red {
-				sibling.color = Black
-				node.parent.color = Red
-				t.rotateRight(node.parent)
-				sibling = node.parent.left
-			}
-			if (sibling.left == nil || sibling.left.color == Black) &&
-				(sibling.right == nil || sibling.right.color == Black) {
-				sibling.color = Red
-				node = node.parent
 			} else {
 				if sibling.left == nil || sibling.left.color == Black {
 					if sibling.right != nil {
@@ -274,14 +327,17 @@ func (t *RBTree[K, V]) fixDelete(node *RBNode[K, V]) {
 					}
 					sibling.color = Red
 					t.rotateLeft(sibling)
-					sibling = node.parent.left
+					sibling = parent.left
+					if sibling == nil {
+						break
+					}
 				}
-				sibling.color = node.parent.color
-				node.parent.color = Black
+				sibling.color = parent.color
+				parent.color = Black
 				if sibling.left != nil {
 					sibling.left.color = Black
 				}
-				t.rotateRight(node.parent)
+				t.rotateRight(parent)
 				node = t.root
 			}
 		}
@@ -296,22 +352,4 @@ func (t *RBTree[K, V]) minimum(node *RBNode[K, V]) *RBNode[K, V] {
 		node = node.left
 	}
 	return node
-}
-
-func (t *SafeRBTree[K, V]) Insert(key K, value V) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.inner.Insert(key, value)
-}
-
-func (t *SafeRBTree[K, V]) Search(key K) (*RBNode[K, V], bool) {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-	return t.inner.Search(key)
-}
-
-func (t *SafeRBTree[K, V]) Delete(key K) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.inner.Delete(key)
 }

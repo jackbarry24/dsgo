@@ -6,7 +6,7 @@ import (
 )
 
 func TestNewOrderedMap(t *testing.T) {
-	m := NewOrderedMap[string, int]()
+	m := NewOrderedMap[string, int](false)
 	if m == nil {
 		t.Error("NewOrderedMap returned nil")
 	}
@@ -19,7 +19,7 @@ func TestNewOrderedMap(t *testing.T) {
 }
 
 func TestSetAndGet(t *testing.T) {
-	m := NewOrderedMap[string, int]()
+	m := NewOrderedMap[string, int](false)
 
 	// Test setting and getting a value
 	m.Set("one", 1)
@@ -49,7 +49,7 @@ func TestSetAndGet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	m := NewOrderedMap[string, int]()
+	m := NewOrderedMap[string, int](false)
 	m.Set("one", 1)
 	m.Set("two", 2)
 	m.Set("three", 3)
@@ -71,7 +71,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestNextAndPrev(t *testing.T) {
-	m := NewOrderedMap[string, int]()
+	m := NewOrderedMap[string, int](false)
 	m.Set("one", 1)
 	m.Set("two", 2)
 	m.Set("three", 3)
@@ -118,7 +118,7 @@ func TestNextAndPrev(t *testing.T) {
 }
 
 func TestKeysAndValues(t *testing.T) {
-	m := NewOrderedMap[string, int]()
+	m := NewOrderedMap[string, int](false)
 	m.Set("one", 1)
 	m.Set("two", 2)
 	m.Set("three", 3)
@@ -200,7 +200,7 @@ func TestOrderedMapWithDifferentTypes(t *testing.T) {
 // SafeOrderedMap tests
 
 func TestSafeOrderedMap_BasicOperations(t *testing.T) {
-	m := NewSafeOrderedMap[string, int]()
+	m := NewOrderedMap[string, int](true)
 
 	// Test Set and Get
 	m.Set("one", 1)
@@ -242,7 +242,7 @@ func TestSafeOrderedMap_BasicOperations(t *testing.T) {
 }
 
 func TestSafeOrderedMap_NextPrev(t *testing.T) {
-	m := NewSafeOrderedMap[string, int]()
+	m := NewOrderedMap[string, int](true)
 	m.Set("one", 1)
 	m.Set("two", 2)
 	m.Set("three", 3)
@@ -272,7 +272,7 @@ func TestSafeOrderedMap_NextPrev(t *testing.T) {
 }
 
 func TestSafeOrderedMap_Range(t *testing.T) {
-	m := NewSafeOrderedMap[string, int]()
+	m := NewOrderedMap[string, int](true)
 	m.Set("one", 1)
 	m.Set("two", 2)
 	m.Set("three", 3)
@@ -307,7 +307,7 @@ func TestSafeOrderedMap_Range(t *testing.T) {
 }
 
 func TestSafeOrderedMap_Concurrent(t *testing.T) {
-	m := NewSafeOrderedMap[string, int]()
+	m := NewOrderedMap[string, int](true)
 	var wg sync.WaitGroup
 	iterations := 1000
 
@@ -352,7 +352,7 @@ func TestSafeOrderedMap_Concurrent(t *testing.T) {
 }
 
 func TestSafeOrderedMap_Empty(t *testing.T) {
-	m := NewSafeOrderedMap[string, int]()
+	m := NewOrderedMap[string, int](true)
 
 	if !m.IsEmpty() {
 		t.Error("IsEmpty() = false, want true")

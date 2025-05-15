@@ -14,21 +14,18 @@ type AVLNode[K utils.Ordered, V any] struct {
 }
 
 type AVLTree[K utils.Ordered, V any] struct {
-	Root *AVLNode[K, V]
+	Root       *AVLNode[K, V]
+	threadSafe bool
+	mu         sync.RWMutex
 }
 
-type SafeAVLTree[K utils.Ordered, V any] struct {
-	mu    sync.RWMutex
-	inner *AVLTree[K, V]
-}
-
-func NewAVLTree[K utils.Ordered, V any]() *AVLTree[K, V] {
-	return &AVLTree[K, V]{}
-}
-
-func NewSafeAVLTree[K utils.Ordered, V any]() *SafeAVLTree[K, V] {
-	return &SafeAVLTree[K, V]{
-		inner: NewAVLTree[K, V](),
+func NewAVLTree[K utils.Ordered, V any](threadSafe ...bool) *AVLTree[K, V] {
+	isThreadSafe := true
+	if len(threadSafe) > 0 {
+		isThreadSafe = threadSafe[0]
+	}
+	return &AVLTree[K, V]{
+		threadSafe: isThreadSafe,
 	}
 }
 
@@ -84,6 +81,10 @@ func leftRotate[K utils.Ordered, V any](x *AVLNode[K, V]) *AVLNode[K, V] {
 }
 
 func (t *AVLTree[K, V]) Insert(key K, value V) {
+	if t.threadSafe {
+		t.mu.Lock()
+		defer t.mu.Unlock()
+	}
 	t.Root = t.insert(t.Root, key, value)
 }
 
@@ -134,6 +135,10 @@ func (t *AVLTree[K, V]) insert(node *AVLNode[K, V], key K, value V) *AVLNode[K, 
 }
 
 func (t *AVLTree[K, V]) Delete(key K) {
+	if t.threadSafe {
+		t.mu.Lock()
+		defer t.mu.Unlock()
+	}
 	t.Root = t.delete(t.Root, key)
 }
 
@@ -207,6 +212,10 @@ func (t *AVLTree[K, V]) minValueNode(node *AVLNode[K, V]) *AVLNode[K, V] {
 }
 
 func (t *AVLTree[K, V]) Search(key K) (V, bool) {
+	if t.threadSafe {
+		t.mu.RLock()
+		defer t.mu.RUnlock()
+	}
 	return t.search(t.Root, key)
 }
 
@@ -225,6 +234,10 @@ func (t *AVLTree[K, V]) search(node *AVLNode[K, V], key K) (V, bool) {
 }
 
 func (t *AVLTree[K, V]) InOrderTraversal() []V {
+	if t.threadSafe {
+		t.mu.RLock()
+		defer t.mu.RUnlock()
+	}
 	var result []V
 	t.inOrderTraversal(t.Root, &result)
 	return result
@@ -236,28 +249,4 @@ func (t *AVLTree[K, V]) inOrderTraversal(node *AVLNode[K, V], result *[]V) {
 		*result = append(*result, node.Value)
 		t.inOrderTraversal(node.Right, result)
 	}
-}
-
-func (s *SafeAVLTree[K, V]) Insert(key K, value V) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.inner.Insert(key, value)
-}
-
-func (s *SafeAVLTree[K, V]) Delete(key K) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.inner.Delete(key)
-}
-
-func (s *SafeAVLTree[K, V]) Search(key K) (V, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.inner.Search(key)
-}
-
-func (s *SafeAVLTree[K, V]) InOrderTraversal() []V {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.inner.InOrderTraversal()
 }

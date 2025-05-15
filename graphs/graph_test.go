@@ -5,21 +5,25 @@ import (
 )
 
 func TestNewGraph(t *testing.T) {
-	g := NewGraph[string, int]()
+	g := NewGraph[string, int](false)
 	if g.nodes == nil || g.edges == nil {
 		t.Error("NewGraph should initialize nodes and edges maps")
 	}
-}
+	if g.threadSafe {
+		t.Error("NewGraph should create non-thread-safe graph when threadSafe is false")
+	}
 
-func TestNewSafeGraph(t *testing.T) {
-	sg := NewSafeGraph[string, int]()
-	if sg.inner == nil {
-		t.Error("NewSafeGraph should initialize inner graph")
+	sg := NewGraph[string, int](true)
+	if sg.nodes == nil || sg.edges == nil {
+		t.Error("NewGraph should initialize nodes and edges maps")
+	}
+	if !sg.threadSafe {
+		t.Error("NewGraph should create thread-safe graph when threadSafe is true")
 	}
 }
 
 func TestGraphBasicOperations(t *testing.T) {
-	g := NewGraph[string, int]()
+	g := NewGraph[string, int](false)
 
 	// Test AddNode
 	g.AddNode("A", 1)
@@ -59,7 +63,7 @@ func TestGraphBasicOperations(t *testing.T) {
 }
 
 func TestGraphTraversal(t *testing.T) {
-	g := NewGraph[string, int]()
+	g := NewGraph[string, int](false)
 
 	// Create a simple graph: A -> B -> C
 	//                      \-> D -> E
@@ -99,7 +103,7 @@ func TestGraphTraversal(t *testing.T) {
 }
 
 func TestGraphGetNodesAndEdges(t *testing.T) {
-	g := NewGraph[string, int]()
+	g := NewGraph[string, int](false)
 
 	// Add some nodes and edges
 	g.AddNode("A", 1)
@@ -122,7 +126,7 @@ func TestGraphGetNodesAndEdges(t *testing.T) {
 }
 
 func TestSafeGraphConcurrent(t *testing.T) {
-	sg := NewSafeGraph[string, int]()
+	sg := NewGraph[string, int](true)
 
 	// Test concurrent operations
 	done := make(chan bool)
@@ -148,7 +152,7 @@ func TestSafeGraphConcurrent(t *testing.T) {
 }
 
 func TestGraphEdgeCases(t *testing.T) {
-	g := NewGraph[string, int]()
+	g := NewGraph[string, int](false)
 
 	// Test non-existent node operations
 	if g.HasNode("X") {

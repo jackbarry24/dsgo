@@ -5,35 +5,38 @@ import (
 )
 
 type MinHeap[T any] struct {
-	items []T
-	less  func(a, b T) bool
+	items      []T
+	less       func(a, b T) bool
+	threadSafe bool
+	mu         sync.RWMutex
 }
 
-type SafeMinHeap[T any] struct {
-	mu    sync.RWMutex
-	inner *MinHeap[T]
-}
-
-func NewMinHeap[T any](less func(a, b T) bool) *MinHeap[T] {
-	return &MinHeap[T]{
-		items: []T{},
-		less:  less,
+func NewMinHeap[T any](less func(a, b T) bool, threadSafe ...bool) *MinHeap[T] {
+	isThreadSafe := true
+	if len(threadSafe) > 0 {
+		isThreadSafe = threadSafe[0]
 	}
-}
-
-func NewSafeMinHeap[T any](less func(a, b T) bool) *SafeMinHeap[T] {
-	return &SafeMinHeap[T]{
-		mu:    sync.RWMutex{},
-		inner: NewMinHeap(less),
+	return &MinHeap[T]{
+		items:      []T{},
+		less:       less,
+		threadSafe: isThreadSafe,
 	}
 }
 
 func (h *MinHeap[T]) Push(item T) {
+	if h.threadSafe {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+	}
 	h.items = append(h.items, item)
 	h.up(len(h.items) - 1)
 }
 
 func (h *MinHeap[T]) Pop() (T, bool) {
+	if h.threadSafe {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+	}
 	if len(h.items) == 0 {
 		var zero T
 		return zero, false
@@ -52,6 +55,10 @@ func (h *MinHeap[T]) Pop() (T, bool) {
 }
 
 func (h *MinHeap[T]) Peek() (T, bool) {
+	if h.threadSafe {
+		h.mu.RLock()
+		defer h.mu.RUnlock()
+	}
 	if len(h.items) == 0 {
 		var zero T
 		return zero, false
@@ -60,10 +67,18 @@ func (h *MinHeap[T]) Peek() (T, bool) {
 }
 
 func (h *MinHeap[T]) Size() int {
+	if h.threadSafe {
+		h.mu.RLock()
+		defer h.mu.RUnlock()
+	}
 	return len(h.items)
 }
 
 func (h *MinHeap[T]) IsEmpty() bool {
+	if h.threadSafe {
+		h.mu.RLock()
+		defer h.mu.RUnlock()
+	}
 	return len(h.items) == 0
 }
 
@@ -99,34 +114,4 @@ func (h *MinHeap[T]) down(i int) {
 		h.items[i], h.items[smallest] = h.items[smallest], h.items[i]
 		i = smallest
 	}
-}
-
-func (h *SafeMinHeap[T]) Push(item T) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.inner.Push(item)
-}
-
-func (h *SafeMinHeap[T]) Pop() (T, bool) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	return h.inner.Pop()
-}
-
-func (h *SafeMinHeap[T]) Peek() (T, bool) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return h.inner.Peek()
-}
-
-func (h *SafeMinHeap[T]) Size() int {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return h.inner.Size()
-}
-
-func (h *SafeMinHeap[T]) IsEmpty() bool {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return h.inner.IsEmpty()
 }

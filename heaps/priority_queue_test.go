@@ -6,7 +6,7 @@ import (
 )
 
 func TestPriorityQueueBasicOperations(t *testing.T) {
-	pq := NewPriorityQueue[string]()
+	pq := NewPriorityQueue[string](false)
 
 	// Test empty queue
 	if !pq.IsEmpty() {
@@ -70,7 +70,13 @@ func TestPriorityQueueBasicOperations(t *testing.T) {
 }
 
 func TestMaxPriorityQueue(t *testing.T) {
-	pq := NewMaxPriorityQueue[string]()
+	pq := &PriorityQueue[string]{
+		items: []PriorityQueueItem[string]{},
+		less: func(a, b PriorityQueueItem[string]) bool {
+			return a.Priority > b.Priority // Note the > instead of < for max priority
+		},
+		threadSafe: false,
+	}
 
 	// Test multiple Enqueues
 	pq.Enqueue("task1", 5)
@@ -100,7 +106,7 @@ func TestMaxPriorityQueue(t *testing.T) {
 }
 
 func TestSafePriorityQueueConcurrent(t *testing.T) {
-	pq := NewSafePriorityQueue[int]()
+	pq := NewPriorityQueue[int](true)
 	var wg sync.WaitGroup
 	concurrentWriters := 10
 	itemsPerWriter := 100
@@ -157,7 +163,7 @@ func TestPriorityQueueWithCustomType(t *testing.T) {
 		Duration int
 	}
 
-	pq := NewPriorityQueue[Task]()
+	pq := NewPriorityQueue[Task](false)
 
 	tasks := []struct {
 		task     Task

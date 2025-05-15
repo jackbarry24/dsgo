@@ -14,7 +14,7 @@ type SortedMap[K utils.Ordered, V any] struct {
 	index  map[K]int
 }
 
-func NewSortedMap[K utils.Ordered, V any]() *SortedMap[K, V] {
+func NewSortedMap[K utils.Ordered, V any](threadSafe ...bool) *SortedMap[K, V] {
 	return &SortedMap[K, V]{
 		keys:   make([]K, 0),
 		values: make([]V, 0),
@@ -112,7 +112,7 @@ type SafeSortedMap[K utils.Ordered, V any] struct {
 	inner *SortedMap[K, V]
 }
 
-func NewSafeSortedMap[K utils.Ordered, V any]() *SafeSortedMap[K, V] {
+func NewSafeSortedMap[K utils.Ordered, V any](threadSafe ...bool) *SafeSortedMap[K, V] {
 	return &SafeSortedMap[K, V]{
 		inner: NewSortedMap[K, V](),
 	}

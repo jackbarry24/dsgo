@@ -6,7 +6,9 @@ import (
 )
 
 type BST[K utils.Ordered, V any] struct {
-	root *Node[K, V]
+	root       *Node[K, V]
+	threadSafe bool
+	mu         sync.RWMutex
 }
 
 type Node[K utils.Ordered, V any] struct {
@@ -16,16 +18,71 @@ type Node[K utils.Ordered, V any] struct {
 	right *Node[K, V]
 }
 
-func NewBST[K utils.Ordered, V any]() *BST[K, V] {
-	return &BST[K, V]{}
+func NewBST[K utils.Ordered, V any](threadSafe ...bool) *BST[K, V] {
+	isThreadSafe := true
+	if len(threadSafe) > 0 {
+		isThreadSafe = threadSafe[0]
+	}
+	return &BST[K, V]{
+		threadSafe: isThreadSafe,
+	}
 }
 
 func (b *BST[K, V]) Insert(key K, value V) {
+	if !b.threadSafe {
+		if b.root == nil {
+			b.root = &Node[K, V]{key: key, value: value}
+			return
+		}
+		b.root = insert(b.root, key, value)
+		return
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	if b.root == nil {
 		b.root = &Node[K, V]{key: key, value: value}
 		return
 	}
 	b.root = insert(b.root, key, value)
+}
+
+func (b *BST[K, V]) Search(key K) (V, bool) {
+	if !b.threadSafe {
+		if b.root == nil {
+			var zero V
+			return zero, false
+		}
+		return search(b.root, key)
+	}
+
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	if b.root == nil {
+		var zero V
+		return zero, false
+	}
+	return search(b.root, key)
+}
+
+func (b *BST[K, V]) Delete(key K) {
+	if !b.threadSafe {
+		if b.root == nil {
+			return
+		}
+		b.root = delete(b.root, key)
+		return
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if b.root == nil {
+		return
+	}
+	b.root = delete(b.root, key)
 }
 
 func insert[K utils.Ordered, V any](node *Node[K, V], key K, value V) *Node[K, V] {
@@ -44,14 +101,6 @@ func insert[K utils.Ordered, V any](node *Node[K, V], key K, value V) *Node[K, V
 	return node
 }
 
-func (b *BST[K, V]) Search(key K) (V, bool) {
-	if b.root == nil {
-		var zero V
-		return zero, false
-	}
-	return search(b.root, key)
-}
-
 func search[K utils.Ordered, V any](node *Node[K, V], key K) (V, bool) {
 	if node == nil {
 		var zero V
@@ -66,13 +115,6 @@ func search[K utils.Ordered, V any](node *Node[K, V], key K) (V, bool) {
 	default:
 		return node.value, true
 	}
-}
-
-func (b *BST[K, V]) Delete(key K) {
-	if b.root == nil {
-		return
-	}
-	b.root = delete(b.root, key)
 }
 
 func delete[K utils.Ordered, V any](node *Node[K, V], key K) *Node[K, V] {
@@ -98,7 +140,6 @@ func delete[K utils.Ordered, V any](node *Node[K, V], key K) *Node[K, V] {
 			return node.left
 		}
 		// Case 3: Node with two children
-		// Find the inorder successor (smallest value in right subtree)
 		successor := findMin(node.right)
 		node.key = successor.key
 		node.value = successor.value
@@ -113,33 +154,4 @@ func findMin[K utils.Ordered, V any](node *Node[K, V]) *Node[K, V] {
 		current = current.left
 	}
 	return current
-}
-
-type SafeBST[K utils.Ordered, V any] struct {
-	mu    sync.RWMutex
-	inner *BST[K, V]
-}
-
-func NewSafeBST[K utils.Ordered, V any]() *SafeBST[K, V] {
-	return &SafeBST[K, V]{
-		inner: NewBST[K, V](),
-	}
-}
-
-func (s *SafeBST[K, V]) Insert(key K, value V) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.inner.Insert(key, value)
-}
-
-func (s *SafeBST[K, V]) Search(key K) (V, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.inner.Search(key)
-}
-
-func (s *SafeBST[K, V]) Delete(key K) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.inner.Delete(key)
 }
