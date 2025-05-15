@@ -28,13 +28,11 @@ func NewSafeMinHeap[T any](less func(a, b T) bool) *SafeMinHeap[T] {
 	}
 }
 
-// Push adds an element to the heap
 func (h *MinHeap[T]) Push(item T) {
 	h.items = append(h.items, item)
 	h.up(len(h.items) - 1)
 }
 
-// Pop removes and returns the minimum element from the heap
 func (h *MinHeap[T]) Pop() (T, bool) {
 	if len(h.items) == 0 {
 		var zero T
@@ -53,7 +51,6 @@ func (h *MinHeap[T]) Pop() (T, bool) {
 	return item, true
 }
 
-// Peek returns the minimum element without removing it
 func (h *MinHeap[T]) Peek() (T, bool) {
 	if len(h.items) == 0 {
 		var zero T
@@ -62,17 +59,14 @@ func (h *MinHeap[T]) Peek() (T, bool) {
 	return h.items[0], true
 }
 
-// Size returns the number of elements in the heap
 func (h *MinHeap[T]) Size() int {
 	return len(h.items)
 }
 
-// IsEmpty returns true if the heap is empty
 func (h *MinHeap[T]) IsEmpty() bool {
 	return len(h.items) == 0
 }
 
-// up moves an element up the heap to maintain the heap property
 func (h *MinHeap[T]) up(i int) {
 	for {
 		parent := (i - 1) / 2
@@ -84,7 +78,6 @@ func (h *MinHeap[T]) up(i int) {
 	}
 }
 
-// down moves an element down the heap to maintain the heap property
 func (h *MinHeap[T]) down(i int) {
 	for {
 		left := 2*i + 1
@@ -107,8 +100,6 @@ func (h *MinHeap[T]) down(i int) {
 		i = smallest
 	}
 }
-
-// Thread-safe wrapper methods
 
 func (h *SafeMinHeap[T]) Push(item T) {
 	h.mu.Lock()

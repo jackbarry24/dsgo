@@ -2,7 +2,6 @@ package sets
 
 import "sync"
 
-// Set is a basic set implementation that is not safe for concurrent use.
 type Set[T comparable] struct {
 	items map[T]struct{}
 }

@@ -5,8 +5,6 @@ import (
 	"sync"
 )
 
-// OrderedMap is a map that maintains keys in insertion order.
-// It is not safe for concurrent use.
 type OrderedMap[K comparable, V any] struct {
 	keys   []K
 	values []V

@@ -5,7 +5,6 @@ import (
 	"sync"
 )
 
-// BST is a basic binary search tree implementation that is not safe for concurrent use.
 type BST[K utils.Ordered, V any] struct {
 	root *Node[K, V]
 }
@@ -116,7 +115,6 @@ func findMin[K utils.Ordered, V any](node *Node[K, V]) *Node[K, V] {
 	return current
 }
 
-// SafeBST is a thread-safe wrapper around BST.
 type SafeBST[K utils.Ordered, V any] struct {
 	mu    sync.RWMutex
 	inner *BST[K, V]

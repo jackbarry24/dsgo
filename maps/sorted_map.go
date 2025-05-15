@@ -8,8 +8,6 @@ import (
 	"dsgo/utils"
 )
 
-// SortedMap is a map that maintains keys in sorted order.
-// It is not safe for concurrent use.
 type SortedMap[K utils.Ordered, V any] struct {
 	keys   []K
 	values []V

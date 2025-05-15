@@ -4,26 +4,21 @@ import (
 	"sync"
 )
 
-// PriorityQueueItem represents an item in the priority queue with a priority value
 type PriorityQueueItem[T any] struct {
 	Value    T
 	Priority int
 }
 
-// PriorityQueue is a generic priority queue implementation
 type PriorityQueue[T any] struct {
 	items []PriorityQueueItem[T]
 	less  func(a, b PriorityQueueItem[T]) bool
 }
 
-// SafePriorityQueue is a thread-safe version of PriorityQueue
 type SafePriorityQueue[T any] struct {
 	mu    sync.RWMutex
 	inner *PriorityQueue[T]
 }
 
-// NewPriorityQueue creates a new priority queue
-// By default, lower priority numbers are dequeued first (like a min heap)
 func NewPriorityQueue[T any]() *PriorityQueue[T] {
 	return &PriorityQueue[T]{
 		items: []PriorityQueueItem[T]{},
@@ -33,7 +28,6 @@ func NewPriorityQueue[T any]() *PriorityQueue[T] {
 	}
 }
 
-// NewMaxPriorityQueue creates a new priority queue where higher priority numbers are dequeued first
 func NewMaxPriorityQueue[T any]() *PriorityQueue[T] {
 	return &PriorityQueue[T]{
 		items: []PriorityQueueItem[T]{},
@@ -43,7 +37,6 @@ func NewMaxPriorityQueue[T any]() *PriorityQueue[T] {
 	}
 }
 
-// NewSafePriorityQueue creates a new thread-safe priority queue
 func NewSafePriorityQueue[T any]() *SafePriorityQueue[T] {
 	return &SafePriorityQueue[T]{
 		mu:    sync.RWMutex{},
@@ -51,7 +44,6 @@ func NewSafePriorityQueue[T any]() *SafePriorityQueue[T] {
 	}
 }
 
-// NewSafeMaxPriorityQueue creates a new thread-safe priority queue where higher priority numbers are dequeued first
 func NewSafeMaxPriorityQueue[T any]() *SafePriorityQueue[T] {
 	return &SafePriorityQueue[T]{
 		mu:    sync.RWMutex{},
@@ -59,13 +51,11 @@ func NewSafeMaxPriorityQueue[T any]() *SafePriorityQueue[T] {
 	}
 }
 
-// Enqueue adds an item to the priority queue with the given priority
 func (pq *PriorityQueue[T]) Enqueue(value T, priority int) {
 	pq.items = append(pq.items, PriorityQueueItem[T]{Value: value, Priority: priority})
 	pq.up(len(pq.items) - 1)
 }
 
-// Dequeue removes and returns the item with the highest priority
 func (pq *PriorityQueue[T]) Dequeue() (T, int, bool) {
 	if len(pq.items) == 0 {
 		var zero T
@@ -84,7 +74,6 @@ func (pq *PriorityQueue[T]) Dequeue() (T, int, bool) {
 	return item.Value, item.Priority, true
 }
 
-// Peek returns the highest priority item without removing it
 func (pq *PriorityQueue[T]) Peek() (T, int, bool) {
 	if len(pq.items) == 0 {
 		var zero T
@@ -93,17 +82,14 @@ func (pq *PriorityQueue[T]) Peek() (T, int, bool) {
 	return pq.items[0].Value, pq.items[0].Priority, true
 }
 
-// Size returns the number of items in the queue
 func (pq *PriorityQueue[T]) Size() int {
 	return len(pq.items)
 }
 
-// IsEmpty returns true if the queue is empty
 func (pq *PriorityQueue[T]) IsEmpty() bool {
 	return len(pq.items) == 0
 }
 
-// up moves an element up the heap to maintain the heap property
 func (pq *PriorityQueue[T]) up(i int) {
 	for {
 		parent := (i - 1) / 2
@@ -115,7 +101,6 @@ func (pq *PriorityQueue[T]) up(i int) {
 	}
 }
 
-// down moves an element down the heap to maintain the heap property
 func (pq *PriorityQueue[T]) down(i int) {
 	for {
 		left := 2*i + 1
@@ -138,8 +123,6 @@ func (pq *PriorityQueue[T]) down(i int) {
 		i = smallest
 	}
 }
-
-// Thread-safe wrapper methods
 
 func (pq *SafePriorityQueue[T]) Enqueue(value T, priority int) {
 	pq.mu.Lock()
