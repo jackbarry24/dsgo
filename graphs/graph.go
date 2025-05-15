@@ -1,6 +1,10 @@
 package graphs
 
-import "sync"
+import (
+	"fmt"
+	"sort"
+	"sync"
+)
 
 type Graph[K comparable, V any] struct {
 	threadSafe bool
@@ -165,7 +169,13 @@ func (g *Graph[K, V]) BFS(start K) []K {
 		queue = queue[1:]
 		result = append(result, node)
 
-		for _, neighbor := range g.GetNeighbors(node) {
+		// Get neighbors and sort them to ensure consistent order
+		neighbors := g.GetNeighbors(node)
+		sort.Slice(neighbors, func(i, j int) bool {
+			return fmt.Sprintf("%v", neighbors[i]) < fmt.Sprintf("%v", neighbors[j])
+		})
+
+		for _, neighbor := range neighbors {
 			if !visited[neighbor] {
 				visited[neighbor] = true
 				queue = append(queue, neighbor)
@@ -193,7 +203,11 @@ func (g *Graph[K, V]) DFS(start K) []K {
 		visited[node] = true
 		result = append(result, node)
 
-		for _, neighbor := range g.GetNeighbors(node) {
+		neighbors := g.GetNeighbors(node)
+		sort.Slice(neighbors, func(i, j int) bool {
+			return fmt.Sprintf("%v", neighbors[i]) < fmt.Sprintf("%v", neighbors[j])
+		})
+		for _, neighbor := range neighbors {
 			if !visited[neighbor] {
 				dfs(neighbor)
 			}
