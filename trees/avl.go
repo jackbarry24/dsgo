@@ -168,10 +168,6 @@ func (t *AVLTree[K, V]) delete(node *AVLNode[K, V], key K) *AVLNode[K, V] {
 		node.Right = t.delete(node.Right, temp.Key)
 	}
 
-	if node == nil {
-		return nil
-	}
-
 	// Update height
 	node.Height = 1 + max(height(node.Left), height(node.Right))
 

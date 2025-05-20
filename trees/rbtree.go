@@ -280,7 +280,7 @@ func (t *RBTree[K, V]) fixDelete(node, parent *RBNode[K, V]) {
 			break
 		}
 
-		if sibling != nil && sibling.color == Red {
+		if sibling.color == Red {
 			sibling.color = Black
 			parent.color = Red
 			if sibling == parent.right {

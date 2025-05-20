@@ -114,13 +114,3 @@ func (c *LRUCache[K, V]) Len() int {
 	}
 	return c.list.Len()
 }
-
-// Capacity returns the maximum capacity of the cache
-func (c *LRUCache[K, V]) Capacity() int {
-	return c.capacity
-}
-
-// IsSafe returns whether the cache is thread-safe
-func (c *LRUCache[K, V]) IsSafe() bool {
-	return c.threadSafe
-}
